@@ -740,10 +740,11 @@ int main(int argc, char *argv[])
 				printf("exit\n");
 				goto exit;
 			}
-			printf("frames_num %d\n", frames_num);
-			frames_num++;
-			retry_cnt = 0;
 		}
+
+		printf("frames_num %d\n", frames_num);
+		frames_num++;
+		retry_cnt = 0;
 	}
 
 exit:
