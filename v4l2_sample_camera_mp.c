@@ -542,7 +542,7 @@ int main(int argc, char *argv[])
 	int retry_cnt, vd_fd;
 	int cur_id;
 	int out_height, out_width;
-	int video_dev_n;
+	int video_dev_n, delay_time;
 
 	if (argc > 1)
 		video_dev_n = atoi(argv[1]);
@@ -716,8 +716,14 @@ int main(int argc, char *argv[])
 
 	frames_num = 0;
 	retry_cnt = 0;
+	delay_time = 100;
+	if (video_dev_n > 1)
+		delay_time = 50;
+
+
 	while (1) {
 		for (i = 0; i < video_dev_n; i++) {
+redqbuf:
 			ret = dqbuf(vdata[i].video_fd, &cur_id);
 			if (ret < 0) {
 				if (retry_cnt > TRY_CNT_LIMIT) {
@@ -725,8 +731,8 @@ int main(int argc, char *argv[])
 					goto fail;
 				}
 				retry_cnt++;
-				usleep(500);
-				continue;
+				usleep(delay_time);
+				goto redqbuf;
 			}
 
 			write_image_file(vdata[i].savefile, vdata[i].vbuf[cur_id].start, &fmt);
@@ -740,16 +746,22 @@ int main(int argc, char *argv[])
 				printf("exit\n");
 				goto exit;
 			}
+			retry_cnt = 0;
 		}
 
 		printf("frames_num %d\n", frames_num);
 		frames_num++;
-		retry_cnt = 0;
 	}
 
 exit:
 fail:
+
+	drmDropMaster(drm->drm_fd);
+
 	for (j = 0; j < video_dev_n; j++) {
+		drm_destroy_fb(drm->drm_fd, 0, &drm->buffers[0]);
+		drm_destroy_fb(drm->drm_fd, 1, &drm->buffers[1]);
+
 		close(vdata[j].video_fd);
 		fclose(vdata[j].savefile);
 	}
