@@ -66,12 +66,6 @@
 #define IMAGE_WIDTH  720
 #define IMAGE_HEIGHT 240
 
-struct video_data {
-	int video_fd;
-	FILE *savefile;
-	struct video_buffer *vbuf;
-};
-
 struct video_buffer {
 	void *start;
 	size_t length;
@@ -80,6 +74,12 @@ struct video_buffer {
 	int out_width;
 	int dis_x_off;
 	int dis_y_off;
+};
+
+struct video_data {
+	int video_fd;
+	FILE *savefile;
+	struct video_buffer *vbuf;
 };
 
 struct drm_buffer {
@@ -441,10 +441,10 @@ int querybuf(int v4l2_fd, int buf_id, struct video_buffer *buffers)
 	}
 
 	memset(&buf, 0, sizeof(buf));
-	
+
 	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 	buf.memory = V4L2_MEMORY_MMAP;
-	
+
 	buf.m.planes = planes;
 	buf.length = 1;
 	buf.index = buf_id;
@@ -474,7 +474,7 @@ int qbuf(int v4l2_fd, unsigned int buf_id, struct video_buffer *buffers)
 	}
 
 	memset(&buf, 0, sizeof(buf));
-	
+
 	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 	buf.memory = V4L2_MEMORY_MMAP;
 
@@ -520,7 +520,6 @@ int dqbuf(int v4l2_fd, unsigned int *buf_id)
 	free(planes);
 
 	*buf_id = buf.index;
-
 	return 0;
 }
 
@@ -544,8 +543,18 @@ int main(int argc, char *argv[])
 	int out_height, out_width;
 	int video_dev_n, delay_time;
 
-	if (argc > 1)
+	if (argc > 1) {
+		if (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")) {
+			printf("./v4l2_sample_camera_mp   "
+				"-> show 1 camera from /dev/video0\n");
+			printf("./v4l2_sample_camera_mp 1 "
+				"-> show 1 camera from /dev/video0\n");
+			printf("./v4l2_sample_camera_mp 2 "
+				"-> show 2 camera from /dev/video0 and /dev/video1\n");
+			return 0;
+		}
 		video_dev_n = atoi(argv[1]);
+	}
 
 	if (video_dev_n != 1 && video_dev_n != 2)
 		video_dev_n = 1;
@@ -555,7 +564,6 @@ int main(int argc, char *argv[])
 		printf("create vdata fail\n");
 		return -EINVAL;
 	}
-
 
 	for (i = 0; i < video_dev_n; i++) {
 		sprintf(&file_output[i][0], "%s-%d-%d", video_file_name[i],
@@ -719,7 +727,6 @@ int main(int argc, char *argv[])
 	delay_time = 100;
 	if (video_dev_n > 1)
 		delay_time = 50;
-
 
 	while (1) {
 		for (i = 0; i < video_dev_n; i++) {
